@@ -15,6 +15,7 @@ export interface OrderItem {
 }
 
 export interface Order {
+    id: number;
     buyerEmail: string;
     orderDate: string;
     shipToAddress: Address;

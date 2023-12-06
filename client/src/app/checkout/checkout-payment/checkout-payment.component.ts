@@ -27,9 +27,7 @@ export class CheckoutPaymentComponent {
       next: (order) => {
         this.toastr.success('Order created successfully');
         this.basketService.deleteLocalBasket();
-        const navigationExtras: NavigationExtras = {
-          state: { order }
-        };
+        const navigationExtras: NavigationExtras = { state: order  };
         this.router.navigate(['checkout/success'], navigationExtras);
       }
     })
