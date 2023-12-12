@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers
 {
+    [Cached(600)]
     public class ProductsController : BaseApiController
     {
         private readonly IGenericRepository<Product> _productRepo;

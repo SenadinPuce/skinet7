@@ -29,22 +29,39 @@ namespace Infrastructure.Services
 
             if (basket == null) return null;
 
+            var spec = new OrderByPaymentIntentIdSpecification(basket.PaymentIntentId);
+            var order = await _unitOfWork.Repository<Order>().GetEntityWithSpec(spec);
+
+            var items = new List<OrderItem>();
+
             var shippingPrice = 0m;
 
             if (basket.DeliveryMethodId.HasValue)
             {
                 var deliveryMethod = await _unitOfWork.Repository<DeliveryMethod>().GetByIdAsync((int)basket.DeliveryMethodId);
                 shippingPrice = deliveryMethod.Price;
+
+                if (order != null) order.DeliveryMethod = deliveryMethod;
             }
 
             foreach (var item in basket.Items)
             {
                 var productItem = await _unitOfWork.Repository<Product>().GetByIdAsync(item.Id);
+                var itemOrdered = new ProductItemOrdered(productItem.Id, productItem.Name, productItem.PictureUrl);
+                var orderItem = new OrderItem(itemOrdered, productItem.Price, item.Quantity);
+                items.Add(orderItem);
+            }
 
-                if (item.Price != productItem.Price)
+            if (order != null)
+            {
+
+                foreach (var existingItem in order.OrderItems)
                 {
-                    item.Price = productItem.Price;
+                    _unitOfWork.Repository<OrderItem>().Delete(existingItem);
                 }
+                order.OrderItems = items;
+                _unitOfWork.Repository<Order>().Update(order);
+                await _unitOfWork.Complete();
             }
 
             var service = new PaymentIntentService();
@@ -55,7 +72,7 @@ namespace Infrastructure.Services
             {
                 var options = new PaymentIntentCreateOptions
                 {
-                    Amount = (long)basket.Items.Sum(i => i.Quantity * (i.Price * 100)) +
+                    Amount = (long)items.Sum(i => i.Quantity * (i.Price * 100)) +
                         (long)shippingPrice * 100,
                     Currency = "usd",
                     PaymentMethodTypes = new List<string> { "card" }
@@ -69,7 +86,7 @@ namespace Infrastructure.Services
             {
                 var options = new PaymentIntentUpdateOptions
                 {
-                    Amount = (long)basket.Items.Sum(i => i.Quantity * (i.Price * 100)) +
+                    Amount = (long)items.Sum(i => i.Quantity * (i.Price * 100)) +
                         (long)shippingPrice * 100
                 };
 
