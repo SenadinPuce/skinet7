@@ -5,6 +5,7 @@ import { Product } from 'src/app/shared/models/product';
 import { BreadcrumbService } from 'xng-breadcrumb';
 import { BasketService } from 'src/app/basket/basket.service';
 import { take } from 'rxjs';
+import { NgxGalleryAnimation, NgxGalleryImage, NgxGalleryImageSize, NgxGalleryOptions } from '@kolkov/ngx-gallery';
 
 @Component({
   selector: 'app-product-details',
@@ -15,6 +16,8 @@ export class ProductDetailsComponent implements OnInit {
   product?: Product;
   quantity = 1;
   quantityInBasket = 0;
+  galleryOptions: NgxGalleryOptions[] = [];
+  galleryImages: NgxGalleryImage[] = [];
 
   constructor(private shopService: ShopService, private activatedRoute: ActivatedRoute, private bcService: BreadcrumbService,
     private basketService: BasketService) {
@@ -25,12 +28,44 @@ export class ProductDetailsComponent implements OnInit {
     this.loadProduct();
   }
 
+  initializeGallery() {
+    this.galleryOptions = [
+      {
+        width: '500px',
+        height: '600px',
+        imagePercent: 100,
+        thumbnailsColumns: 4,
+        imageAnimation: NgxGalleryAnimation.Fade,
+        imageSize: NgxGalleryImageSize.Contain,
+        thumbnailSize: NgxGalleryImageSize.Contain,
+        preview: false
+      }
+    ];
+    this.galleryImages = this.getImages();
+  }
+
+  getImages() {
+    const imageUrls = [];
+    if (this.product) {
+      for (const photo of this.product.photos) {
+        imageUrls.push({
+          small: photo.pictureUrl,
+          medium: photo.pictureUrl,
+          big: photo.pictureUrl,
+        });
+      }
+      return imageUrls;
+    }
+    return [];
+  }
+
   loadProduct() {
     const id = this.activatedRoute.snapshot.paramMap.get('id');
     if (id) this.shopService.getProduct(+id).subscribe({
       next: product => {
         this.product = product;
         this.bcService.set('@productDetails', product.name);
+        this.initializeGallery();
         this.basketService.basketSource$.pipe(take(1)).subscribe({
           next: basket => {
             const item = basket?.items.find(x => x.id === +id);
