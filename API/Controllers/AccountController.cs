@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using System.Net.Http.Headers;
 using API.Dtos;
 using API.Errors;
 using API.Extensions;
@@ -36,7 +36,7 @@ namespace API.Controllers
             {
                 Email = user.Email,
                 DisplayName = user.DisplayName,
-                Token = _tokenService.CreateToken(user)
+                Token =  await _tokenService.CreateToken(user)
             };
         }
 
@@ -85,7 +85,7 @@ namespace API.Controllers
             {
                 DisplayName = user.DisplayName,
                 Email = user.Email,
-                Token = _tokenService.CreateToken(user)
+                Token = await _tokenService.CreateToken(user)
             };
         }
 
@@ -108,11 +108,15 @@ namespace API.Controllers
 
             if (!result.Succeeded) return BadRequest(new ApiResponse(400));
 
+            var roleAddResult = await _userManager.AddToRoleAsync(user, "Member");
+
+            if(!roleAddResult.Succeeded) return BadRequest(new ApiResponse(400, "Failed to add to role"));
+
             return new UserDto
             {
                 DisplayName = user.DisplayName,
                 Email = user.Email,
-                Token = _tokenService.CreateToken(user)
+                Token = await _tokenService.CreateToken(user)
             };
         }
     }
